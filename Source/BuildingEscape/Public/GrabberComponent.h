@@ -22,9 +22,6 @@ protected:
 public:	
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
-	
-	
 	
 private:
 	
@@ -39,10 +36,16 @@ private:
 	//Ray-cast and Grab what is in reach
 	void Grab();
 	void Release();
+	
 	//find attached PhysicsHandleComp
 	void FindPhysicsHandleComponent();
 	//setup (assumed) attached InputComp
 	void SetupInputComponent();
 	//Return hit for first physics body in reach
-	const FHitResult GetFirstPhysicsBodyInReach();
+	FHitResult GetFirstPhysicsBodyInReach() const;
+
+	//Return current end of reach line
+	FVector GetReachLineEnd() const;
+	FVector GetReachLineStart() const;
+	
 };

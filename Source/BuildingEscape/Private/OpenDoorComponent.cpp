@@ -2,6 +2,7 @@
 
 
 #include "OpenDoorComponent.h"
+#define OUT
 
 // Sets default values for this component's properties
 UOpenDoorComponent::UOpenDoorComponent()
@@ -9,8 +10,7 @@ UOpenDoorComponent::UOpenDoorComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-
+	
 }
 
 
@@ -18,9 +18,12 @@ UOpenDoorComponent::UOpenDoorComponent()
 void UOpenDoorComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
 	Owner = GetOwner();
-	ActorThatOpens = GetWorld()->GetFirstPlayerController()->GetPawn();
+	if (!PressurePlate)
+	{
+		UE_LOG(LogTemp,Error,TEXT("%s missing PressurePlate"),*GetOwner()->GetName());
+	}
+	
 }
 
 // Called every frame
@@ -28,9 +31,10 @@ void UOpenDoorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+	
+	//　poll the trigger volume
 	//poll the trigger
-	if (PressurePlate->IsOverlappingActor(ActorThatOpens))
+	if (GetTotalMassOfActorOnPlate() > 50.0f) //TODO make into aparameter
 	{
 		OpenDoor();
 		LastDoorOpenTime = GetWorld()->GetTimeSeconds();
@@ -42,17 +46,36 @@ void UOpenDoorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	{
 		CloseDoor();
 	}
-
 }
 
 void UOpenDoorComponent::OpenDoor() const
 {
 	//pitch 点头 //yaw 摇头 	//roll 偏头
-	Owner->SetActorRotation(FRotator(0.0f,OpenAngle,0.0f));
+	//Owner->SetActorRotation(FRotator(0.0f,OpenAngle,0.0f));
+	OnOpenRequest.Broadcast();
 }
 
 void UOpenDoorComponent::CloseDoor() const
 {
 	//pitch 点头 //yaw 摇头 	//roll 偏头
-	Owner->SetActorRotation(FRotator(0.0f,0.0f,0.0f));
+	//Owner->SetActorRotation(FRotator(0.0f,0.0f,0.0f));
+	OnCloseRequest.Broadcast();
+}
+
+float UOpenDoorComponent::GetTotalMassOfActorOnPlate()
+{
+	float TotalMass = 0.0f;
+	//find all the overlapping actors
+	TArray<AActor*> OverlappingActors;
+	if (!PressurePlate){return TotalMass;}
+	PressurePlate->GetOverlappingActors(OUT OverlappingActors);
+	
+	//iterate through them adding their masses
+	for (const auto& Actor : OverlappingActors)
+	{
+		TotalMass += Actor->FindComponentByClass<UPrimitiveComponent>()->GetMass();
+		UE_LOG(LogTemp,Warning,TEXT("%s on pressure plate"), *Actor->GetName());
+	}
+	
+	return TotalMass;
 }
